@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -218,19 +217,47 @@
   .modal h2 { font-family: 'Baloo Da 2', sans-serif; margin: 0 0 4px; font-size: 19px; }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
  
+  /* ---------- Mobile top bar (hidden on desktop) ---------- */
+  #mobileTopBar { display: none; }
+  #sidebarOverlay { display: none; }
+ 
   @media (max-width: 800px) {
     body { overflow-x: hidden; }
     #appShell.ready { flex-direction: column; height: auto; min-height: 100vh; }
-    .sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; padding: 10px; }
-    .sidebar .brand { display: none; }
-    .sidebar-footer {
-      margin-top: 0; padding: 0 0 0 10px; border: none;
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+ 
+    #mobileTopBar {
+      display: flex; align-items: center; gap: 12px;
+      position: fixed; top: 0; left: 0; right: 0; height: 56px;
+      background: var(--asphalt); z-index: 300; padding: 0 14px;
     }
-    .sidebar-footer .name, .sidebar-footer .role { display: none; }
-    .sidebar-footer button { width: auto; white-space: nowrap; padding: 8px 12px; }
-    .nav-item { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; padding: 10px 14px; }
-    .nav-item.active { border-left-color: transparent; border-bottom-color: var(--amber); }
+    #hamburgerBtn {
+      background: none; border: none; color: var(--paper);
+      font-size: 26px; line-height: 1; cursor: pointer; padding: 4px 8px;
+    }
+    #mobileTopLogo { height: 38px; width: auto; border-radius: 4px; }
+ 
+    #sidebarOverlay {
+      display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 350; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #sidebarOverlay.open { opacity: 1; pointer-events: auto; }
+ 
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 78vw; max-width: 280px;
+      flex-direction: column; align-items: stretch; overflow-y: auto; overflow-x: hidden;
+      z-index: 400; padding: 16px 0; transform: translateX(-100%); transition: transform 0.25s ease;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar .brand { display: block; padding: 0 16px 16px; }
+    .sidebar-footer {
+      margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--asphalt-lighter);
+      display: block;
+    }
+    .sidebar-footer .name, .sidebar-footer .role { display: block; }
+    .sidebar-footer button { width: 100%; }
+    .nav-item { padding: 12px 20px; }
+ 
+    #appShell.ready { padding-top: 56px; }
     .main { padding: 14px; max-height: none; overflow-y: visible; }
     .grid-3 { grid-template-columns: 1fr; }
     .form-row { grid-template-columns: 1fr; }
@@ -251,11 +278,17 @@
 </div>
  
 <div id="appShell">
-  <nav class="sidebar">
+  <div id="mobileTopBar">
+    <button id="hamburgerBtn" aria-label="মেনু খোলো">☰</button>
+    <img src="assets/logo.jpg" alt="হোসনেআরা ট্রান্সপোর্ট এজেন্সী" id="mobileTopLogo">
+  </div>
+  <div id="sidebarOverlay"></div>
+  <nav class="sidebar" id="sidebar">
     <div class="brand"><img src="assets/logo.jpg" alt="হোসনেআরা ট্রান্সপোর্ট এজেন্সী"></div>
     <div class="nav-item active" data-view="dashboard">📊 ড্যাশবোর্ড</div>
     <div class="nav-item" data-view="dispatch">🚦 ডিসপ্যাচ বোর্ড</div>
     <div class="nav-item" data-view="companies">🏢 কোম্পানি হিসাব</div>
+    <div class="nav-item" data-view="dueList">🧾 বকেয়া তালিকা</div>
     <div class="nav-item" data-view="newTrip">➕ নতুন ট্রিপ</div>
     <div class="nav-item" data-view="dailyAccounts">📅 দৈনিক হিসাব</div>
     <div class="nav-item" data-view="vehicles">🚛 গাড়ি</div>
@@ -337,6 +370,18 @@
       </div>
     </section>
  
+    <!-- ================= DUE LIST ================= -->
+    <section class="view" id="view-dueList">
+      <h1>বকেয়া তালিকা</h1>
+      <p style="color:var(--muted);margin-top:-12px">সব তারিখের সব বাকি টাকা — কোম্পানি হোক বা এককালীন যাত্রী, সবই এখানে একসাথে।</p>
+      <div class="card">
+        <table>
+          <thead><tr><th>তারিখ</th><th>গাড়ি</th><th>যার থেকে নেওয়া</th><th>রুট</th><th>বাকি টাকা</th><th></th></tr></thead>
+          <tbody id="dueListBody"><tr><td colspan="6" class="empty">লোড হচ্ছে...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+ 
     <!-- ================= NEW TRIP ================= -->
     <section class="view" id="view-newTrip">
       <h1>নতুন ট্রিপ এন্ট্রি</h1>
@@ -383,11 +428,14 @@
           </div>
           <p style="color:var(--muted);font-size:13px;margin:-8px 0 0">কমিশন হবে: <strong id="tripCommissionPreview">৳০</strong></p>
  
-          <label>টাকা এখন কার কাছে?</label>
-          <select id="tripMoneyHolder">
-            <option value="office">অফিসে জমা</option>
-            <option value="driver">ড্রাইভারের কাছে</option>
-          </select>
+          <div id="tripMoneyHolderWrap">
+            <label>টাকা এখন কার কাছে?</label>
+            <select id="tripMoneyHolder">
+              <option value="office">অফিসে জমা</option>
+              <option value="driver">ড্রাইভারের কাছে</option>
+            </select>
+          </div>
+          <p id="tripPendingNote" style="display:none;color:var(--muted);font-size:13px;margin:6px 0 0">টাকা এখনো পাওনি, তাই কার কাছে জমা সেটা পরে ঠিক করবে — "বকেয়া তালিকা" পেজ থেকে টাকা পেলে আপডেট করে দিও।</p>
  
           <label>নোট (ঐচ্ছিক)</label>
           <textarea id="tripNote" rows="2"></textarea>
@@ -440,10 +488,11 @@
     <!-- ================= DRIVERS ================= -->
     <section class="view" id="view-drivers">
       <h1>ড্রাইভার হিসাব</h1>
+      <p style="color:var(--muted);margin-top:-12px">কাস্টডি = ড্রাইভার অফিসের কাছে যা ফেরত দেবে। কমিশন = অফিস ড্রাইভারকে যা দেবে। দুটো আলাদা হিসাব।</p>
       <div class="card">
         <table>
-          <thead><tr><th>ড্রাইভার</th><th>গাড়ি</th><th>মোট ট্রিপ</th><th>বকেয়া কাস্টডি</th></tr></thead>
-          <tbody id="driversBody"><tr><td colspan="4" class="empty">লোড হচ্ছে...</td></tr></tbody>
+          <thead><tr><th>ড্রাইভার</th><th>গাড়ি</th><th>মোট ট্রিপ</th><th>বকেয়া কাস্টডি (ড্রাইভার দেবে)</th><th>বকেয়া কমিশন (অফিস দেবে)</th></tr></thead>
+          <tbody id="driversBody"><tr><td colspan="5" class="empty">লোড হচ্ছে...</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -572,6 +621,22 @@
   </div>
 </div>
  
+<!-- ================= MARK PAID MODAL ================= -->
+<div class="modal-overlay" id="markPaidModalOverlay">
+  <div class="modal">
+    <h2>টাকা পেলাম</h2>
+    <p style="color:var(--muted);font-size:14px;margin-top:4px">টাকাটা এখন কার কাছে জমা হলো?</p>
+    <input type="hidden" id="markPaidTripId">
+    <div class="modal-actions" style="justify-content:stretch;gap:10px">
+      <button type="button" class="btn secondary" style="flex:1" onclick="confirmMarkPaid('office')">অফিসে জমা</button>
+      <button type="button" class="btn primary" style="flex:1" onclick="confirmMarkPaid('driver')">ড্রাইভারের কাছে</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn secondary" onclick="closeModal('markPaidModalOverlay')">বাতিল</button>
+    </div>
+  </div>
+</div>
+ 
 <!-- ================= COMPANY MODAL ================= -->
 <div class="modal-overlay" id="companyModalOverlay">
   <div class="modal">
@@ -685,8 +750,19 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 /* ---------------- NAVIGATION ---------------- */
 function setupNav() {
   document.querySelectorAll('.nav-item[data-view]').forEach((el) => {
-    el.addEventListener('click', () => switchView(el.dataset.view));
+    el.addEventListener('click', () => { switchView(el.dataset.view); closeSidebar(); });
   });
+ 
+  document.getElementById('hamburgerBtn').addEventListener('click', toggleSidebar);
+  document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
  
 async function switchView(name) {
@@ -697,6 +773,7 @@ async function switchView(name) {
   if (name === 'dashboard') await renderDashboard();
   else if (name === 'dispatch') await renderDispatch();
   else if (name === 'companies') await renderCompanies();
+  else if (name === 'dueList') await renderDueList();
   else if (name === 'dailyAccounts') await renderDailyAccounts();
   else if (name === 'vehicles') await renderVehiclesList();
   else if (name === 'drivers') await renderDrivers();
@@ -727,6 +804,43 @@ function populateCompanySelect() {
   const sel = document.getElementById('tripCompany');
   sel.innerHTML = '<option value="">— নির্বাচন করো বা নিচে সরাসরি লেখো —</option>' +
     companiesCache.map((c) => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+ 
+/* ---------------- DUE LIST (সব বাকি টাকা, সব তারিখ, সব উৎস) ---------------- */
+async function renderDueList() {
+  const { data: trips, error } = await supabaseClient.from('trips').select('*').eq('payment_status', 'due').order('trip_date', { ascending: false });
+  if (error) { showToast('বকেয়া তালিকা লোড করা যায়নি', true); return; }
+ 
+  const body = document.getElementById('dueListBody');
+  body.innerHTML = (trips || []).length ? trips.map((t) => {
+    const v = vehiclesCache.find((x) => x.id === t.vehicle_id);
+    return `<tr>
+      <td>${t.trip_date}</td>
+      <td>${v ? vehicleLabel(v) : '—'}</td>
+      <td>${t.customer_name || '—'}${t.customer_phone ? ' (' + t.customer_phone + ')' : ''}</td>
+      <td>${t.from_location} → ${t.to_location}</td>
+      <td><strong>${money(t.income)}</strong></td>
+      <td><button class="btn small primary" onclick="openMarkPaidModal('${t.id}')">টাকা পেলাম</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">কোনো বকেয়া নেই 🎉</td></tr>';
+}
+ 
+function openMarkPaidModal(tripId) {
+  document.getElementById('markPaidTripId').value = tripId;
+  openModal('markPaidModalOverlay');
+}
+async function confirmMarkPaid(holder) {
+  const tripId = document.getElementById('markPaidTripId').value;
+  const { error } = await supabaseClient.from('trips').update({ payment_status: 'paid', money_holder: holder }).eq('id', tripId);
+  if (error) { showToast('আপডেট করা যায়নি', true); return; }
+  showToast('টাকা পাওয়া হিসেবে চিহ্নিত হলো');
+  closeModal('markPaidModalOverlay');
+  // যে ভিউতে আছি সেটাই রিফ্রেশ করা
+  const activeView = document.querySelector('.view.active').id.replace('view-', '');
+  if (activeView === 'dueList') await renderDueList();
+  else if (activeView === 'dailyAccounts') await renderDailyAccounts();
+  else if (activeView === 'companies') { /* কোম্পানি ডিটেইল খোলা থাকলে সেটাও রিফ্রেশ দরকার হতে পারে, তালিকা রিফ্রেশ যথেষ্ট */ await renderCompanies(); }
+  await renderDashboard();
 }
  
 /* ---------------- COMPANIES / PARTY LEDGER ---------------- */
@@ -768,7 +882,10 @@ async function showCompanyDetail(companyId) {
     return `<tr>
       <td>${t.trip_date}</td><td>${v ? vehicleLabel(v) : '—'}</td><td>${t.from_location} → ${t.to_location}</td>
       <td>${money(t.income)}</td>
-      <td><span class="badge ${t.payment_status}">${t.payment_status === 'paid' ? 'পরিশোধিত' : 'বাকি'}</span></td>
+      <td>
+        <span class="badge ${t.payment_status}">${t.payment_status === 'paid' ? 'পরিশোধিত' : 'বাকি'}</span>
+        ${t.payment_status === 'due' ? `<button class="btn small primary" style="margin-left:6px" onclick="openMarkPaidModal('${t.id}')">টাকা পেলাম</button>` : ''}
+      </td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="empty">এই কোম্পানির কোনো ট্রিপ নেই</td></tr>';
   document.getElementById('companyDetailCard').style.display = 'block';
@@ -896,7 +1013,7 @@ function setupForms() {
       other_cost: Number(document.getElementById('tripOther').value) || 0,
       commission_percent: commissionPercent,
       commission_cost: Math.round(income * commissionPercent) / 100,
-      money_holder: document.getElementById('tripMoneyHolder').value,
+      money_holder: document.getElementById('tripPaymentStatus').value === 'due' ? 'pending' : document.getElementById('tripMoneyHolder').value,
       note: document.getElementById('tripNote').value.trim() || null,
       created_by: currentProfile.id,
     };
@@ -906,9 +1023,18 @@ function setupForms() {
     e.target.reset();
     document.getElementById('tripDate').value = todayStr();
     document.getElementById('tripCommissionPreview').textContent = money(0);
+    updateMoneyHolderVisibility();
     populateVehicleSelect(document.getElementById('tripVehicle'));
     populateCompanySelect();
   });
+ 
+  /* বাকি থাকলে "টাকা কার কাছে" ঘরটা লুকিয়ে ফেলা */
+  function updateMoneyHolderVisibility() {
+    const isDue = document.getElementById('tripPaymentStatus').value === 'due';
+    document.getElementById('tripMoneyHolderWrap').style.display = isDue ? 'none' : 'block';
+    document.getElementById('tripPendingNote').style.display = isDue ? 'block' : 'none';
+  }
+  document.getElementById('tripPaymentStatus').addEventListener('change', updateMoneyHolderVisibility);
  
   /* কোম্পানি সিলেক্ট করলে নাম/ফোন অটো-ফিল */
   document.getElementById('tripCompany').addEventListener('change', (e) => {
@@ -1080,10 +1206,13 @@ async function renderDailyAccounts() {
       <td>${t.customer_name || '—'}</td>
       <td>${t.from_location} → ${t.to_location}</td>
       <td>${money(t.income)}</td>
-      <td><span class="badge ${t.payment_status}">${t.payment_status === 'paid' ? 'পরিশোধিত' : 'বাকি'}</span></td>
+      <td>
+        <span class="badge ${t.payment_status}">${t.payment_status === 'paid' ? 'পরিশোধিত' : 'বাকি'}</span>
+        ${t.payment_status === 'due' ? `<button class="btn small primary" style="margin-left:6px" onclick="openMarkPaidModal('${t.id}')">টাকা পেলাম</button>` : ''}
+      </td>
       <td>${money(Number(t.fuel_cost) + Number(t.khoraki_cost) + Number(t.other_cost))}</td>
       <td>${money(t.commission_cost)}</td>
-      <td><span class="badge ${t.money_holder}">${t.money_holder === 'driver' ? 'ড্রাইভারের কাছে' : 'অফিসে'}</span></td>
+      <td><span class="badge ${t.money_holder === 'pending' ? 'due' : t.money_holder}">${t.money_holder === 'driver' ? 'ড্রাইভারের কাছে' : t.money_holder === 'office' ? 'অফিসে' : 'এখনো পাইনি'}</span></td>
       <td>${t.settled ? '✅' : '—'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="9" class="empty">এই দিনে কোনো ট্রিপ নেই</td></tr>';
@@ -1127,19 +1256,35 @@ async function renderDrivers() {
  
   const byVehicle = {};
   (trips || []).forEach((t) => {
-    if (!byVehicle[t.vehicle_id]) byVehicle[t.vehicle_id] = { count: 0, custody: 0 };
+    if (!byVehicle[t.vehicle_id]) byVehicle[t.vehicle_id] = { count: 0, custody: 0, commissionDue: 0 };
     byVehicle[t.vehicle_id].count += 1;
     if (t.money_holder === 'driver' && !t.settled) {
       byVehicle[t.vehicle_id].custody += Number(t.income) - Number(t.fuel_cost) - Number(t.khoraki_cost) - Number(t.other_cost) - Number(t.commission_cost);
+    }
+    if (!t.commission_paid && Number(t.commission_cost) > 0) {
+      byVehicle[t.vehicle_id].commissionDue += Number(t.commission_cost);
     }
   });
  
   const body = document.getElementById('driversBody');
   const rows = vehiclesCache.filter((v) => v.driver_name);
   body.innerHTML = rows.length ? rows.map((v) => {
-    const s = byVehicle[v.id] || { count: 0, custody: 0 };
-    return `<tr><td>${v.driver_name}</td><td>${vehicleLabel(v)}</td><td>${s.count}</td><td>${money(s.custody)}</td></tr>`;
-  }).join('') : '<tr><td colspan="4" class="empty">কোনো গাড়িতে ড্রাইভারের নাম যোগ করা নেই</td></tr>';
+    const s = byVehicle[v.id] || { count: 0, custody: 0, commissionDue: 0 };
+    return `<tr>
+      <td>${v.driver_name}</td><td>${vehicleLabel(v)}</td><td>${s.count}</td>
+      <td>${s.custody > 0 ? `${money(s.custody)} <button class="btn small primary" onclick="settleCustody('${v.id}')">বুঝে নিলাম</button>` : '—'}</td>
+      <td>${s.commissionDue > 0 ? `${money(s.commissionDue)} <button class="btn small secondary" onclick="settleCommission('${v.id}')">দিয়ে দিলাম</button>` : '—'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">কোনো গাড়িতে ড্রাইভারের নাম যোগ করা নেই</td></tr>';
+}
+ 
+async function settleCommission(vehicleId) {
+  if (!confirm('এই গাড়ির ড্রাইভারের সব বকেয়া কমিশন দিয়ে দেওয়া হয়েছে হিসেবে চিহ্নিত হবে। নিশ্চিত?')) return;
+  const { error } = await supabaseClient.from('trips').update({ commission_paid: true })
+    .eq('vehicle_id', vehicleId).eq('commission_paid', false);
+  if (error) { showToast('আপডেট করা যায়নি', true); return; }
+  showToast('কমিশন দেওয়া হয়েছে হিসেবে চিহ্নিত হলো');
+  await renderDrivers();
 }
  
 /* ---------------- OTHER BOOKINGS ---------------- */
